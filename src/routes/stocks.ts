@@ -7,7 +7,7 @@ router.get('/', (req: Request, res: Response) => {
   res.send('List of all stocks');
 });
 
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:symbol', async (req: Request, res: Response) => {
   const symbol = req.params.symbol;
   
   const connection = await connectToDatabase();
