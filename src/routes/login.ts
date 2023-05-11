@@ -19,7 +19,7 @@ router.post('/login', async (req: Request, res: Response) => {
     // Vérifier si l'utilisateur existe dans la base de données et si le mot de passe est correct
     const connection = await connectToDatabase();
     if (!connection) {
-      res.status(500).json("Error connecting to database");
+      res.status(500).json({message: "Error connecting to database"});
       return;
     }
     
@@ -29,7 +29,7 @@ router.post('/login', async (req: Request, res: Response) => {
     );
     const obj_rows = Object.values(JSON.parse(JSON.stringify(rows[0])));
     if (obj_rows.length === 0) {
-      res.status(404).json("User not found");
+      res.status(404).json({message: "User not found"});
       return;
     } else if (obj_rows.length == 1) {
       const element = JSON.parse(JSON.stringify(obj_rows));
@@ -67,7 +67,7 @@ router.post('/register', async (req: Request, res: Response) => {
   };
   const connection = await connectToDatabase();
   if (!connection) {
-    res.status(500).json("Error connecting to database");
+    res.status(500).json({message: "Error connecting to database"});
     return;
   }
 
@@ -80,7 +80,7 @@ router.post('/register', async (req: Request, res: Response) => {
   console.log(obj_rows[0]);
   console.log(obj_rows.length);
   if (obj_rows.length != 0) {
-    res.status(409).json("Username already exists");
+    res.status(409).json({message: "Username already exists"});
     return;
   } else
   {
@@ -90,7 +90,7 @@ router.post('/register', async (req: Request, res: Response) => {
     );
     connection.end();
     if (reg) {
-      res.status(201).json("User created");
+      res.status(201).json({message: "User created"});
       return;
     } 
   }
@@ -100,7 +100,7 @@ router.post('/logout', token.authenticateToken, async (req: Request, res: Respon
   // logout user with bearer
   const connection = await connectToDatabase();
   if (!connection) {
-    res.status(500).json("Error connecting to database");
+    res.status(500).json({message: "Error connecting to database"});
     return;
   }
   const rows = await connection.query(
@@ -109,7 +109,7 @@ router.post('/logout', token.authenticateToken, async (req: Request, res: Respon
   );
   const obj_rows = Object.values(JSON.parse(JSON.stringify(rows[0])));
   if (obj_rows.length === 0) {
-    res.status(404).json("User not found");
+    res.status(404).json({message: "User not found"});
     return;
   } else if (obj_rows.length == 1) {
     const element = JSON.parse(JSON.stringify(obj_rows));
@@ -123,9 +123,9 @@ router.post('/logout', token.authenticateToken, async (req: Request, res: Respon
     connection.end();
     if (update) {
       console.log("Bearer updated");
-      res.json("Logout successful");
+      res.json({message: "Logout successful"});
     } else  {
-      res.status(500).json("Error on logout");
+      res.status(500).json({message: "Error on logout"});
       return;
     }
   }
