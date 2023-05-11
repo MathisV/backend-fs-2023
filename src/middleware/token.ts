@@ -8,10 +8,12 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
     const authHeader = req.headers['authorization'];
     const token = authHeader?.split(' ')[1];
   
-    if (!token) return res.sendStatus(401);
+    if (!token) { 
+      return res.sendStatus(401).json({message: "No token provided", status: 401});
+    }
   
     jwt.verify(token, JWT_SECRET, (err: VerifyErrors | null, user: any) => {
-      if (err) return res.sendStatus(403);
+      if (err) return res.sendStatus(403).json({message: "Invalid or expired token", status: 403});
   
       req.user = user;
       next();

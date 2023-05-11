@@ -129,4 +129,8 @@ router.post('/logout', token.authenticateToken, async (req: Request, res: Respon
   }
 });
 
+router.get('/isAuthenticated', token.authenticateToken, (req: Request, res: Response) => {
+  res.json({message: "Authenticated", status: 200});
+});
+
 export default router;
