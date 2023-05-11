@@ -1,16 +1,15 @@
 import express, { Request, Response, NextFunction } from 'express';
 import routes from './routes';
 import dotenv from 'dotenv';
-import * as db from './middleware/db';
-import * as login from './routes/login';
 import * as token from './middleware/token';
+import cors from 'cors';
 
 // Charge les variables d'environnement du fichier .env
 dotenv.config();
 
 export const env = process.env;
 export const app = express();
-const port = 3000;
+const port = 8000;
 export const JWT_SECRET = process.env.JWT_SECRET || 'defaultsecret';
 
 interface Stock {
@@ -28,6 +27,7 @@ declare global {
 
 // Middleware pour analyser le contenu JSON des requêtes entrantes
 app.use(express.json());
+app.use(cors());
 
 app.use('/api', routes);
 

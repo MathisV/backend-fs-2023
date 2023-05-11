@@ -3,6 +3,7 @@ import jwt, { VerifyErrors } from 'jsonwebtoken';
 import { connectToDatabase } from '../middleware/db';
 import { JWT_SECRET, app } from '../main';
 import { sha256 } from 'js-sha256';
+import * as token from '../middleware/token';
 
 const router = Router();
 
@@ -18,7 +19,7 @@ router.post('/login', async (req: Request, res: Response) => {
     // Vérifier si l'utilisateur existe dans la base de données et si le mot de passe est correct
     const connection = await connectToDatabase();
     if (!connection) {
-      res.status(500).send("Error connecting to database");
+      res.status(500).json("Error connecting to database");
       return;
     }
     
@@ -28,7 +29,7 @@ router.post('/login', async (req: Request, res: Response) => {
     );
     const obj_rows = Object.values(JSON.parse(JSON.stringify(rows[0])));
     if (obj_rows.length === 0) {
-      res.status(404).send("User not found");
+      res.status(404).json("User not found");
       return;
     } else if (obj_rows.length == 1) {
       const element = JSON.parse(JSON.stringify(obj_rows));
@@ -50,7 +51,11 @@ router.post('/login', async (req: Request, res: Response) => {
 
       // Token en cookie
       res.cookie('token', accessToken, { httpOnly: true });
-      res.send("Login successful");
+      const result = {
+        message: 'Login successful',
+        token: accessToken,
+      }
+      res.json(result);
     }
   });
 
@@ -62,7 +67,7 @@ router.post('/register', async (req: Request, res: Response) => {
   };
   const connection = await connectToDatabase();
   if (!connection) {
-    res.status(500).send("Error connecting to database");
+    res.status(500).json("Error connecting to database");
     return;
   }
 
@@ -75,7 +80,7 @@ router.post('/register', async (req: Request, res: Response) => {
   console.log(obj_rows[0]);
   console.log(obj_rows.length);
   if (obj_rows.length != 0) {
-    res.status(409).send("Username already exists");
+    res.status(409).json("Username already exists");
     return;
   } else
   {
@@ -85,9 +90,44 @@ router.post('/register', async (req: Request, res: Response) => {
     );
     connection.end();
     if (reg) {
-      res.status(201).send("User created");
+      res.status(201).json("User created");
       return;
     } 
+  }
+});
+
+router.post('/logout', token.authenticateToken, async (req: Request, res: Response) => {
+  // logout user with bearer
+  const connection = await connectToDatabase();
+  if (!connection) {
+    res.status(500).json("Error connecting to database");
+    return;
+  }
+  const rows = await connection.query(
+    "SELECT * FROM users WHERE bearer = ?",
+    [req.headers['authorization']?.split(' ')[1]]
+  );
+  const obj_rows = Object.values(JSON.parse(JSON.stringify(rows[0])));
+  if (obj_rows.length === 0) {
+    res.status(404).json("User not found");
+    return;
+  } else if (obj_rows.length == 1) {
+    const element = JSON.parse(JSON.stringify(obj_rows));
+    console.log(element[0].username);
+
+    // Mettre à jour le bearer de l'utilisateur dans la base de données
+    const update = await connection.query(
+      "UPDATE users SET bearer = ? WHERE username = ?",
+      ['null', element[0].username]
+    );
+    connection.end();
+    if (update) {
+      console.log("Bearer updated");
+      res.json("Logout successful");
+    } else  {
+      res.status(500).json("Error on logout");
+      return;
+    }
   }
 });
 
