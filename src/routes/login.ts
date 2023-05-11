@@ -4,6 +4,7 @@ import { connectToDatabase } from '../middleware/db';
 import { JWT_SECRET, app } from '../main';
 import { sha256 } from 'js-sha256';
 import * as token from '../middleware/token';
+import { logger } from '../middleware/logger';
 
 const router = Router();
 
@@ -19,7 +20,8 @@ router.post('/login', async (req: Request, res: Response) => {
     // Vérifier si l'utilisateur existe dans la base de données et si le mot de passe est correct
     const connection = await connectToDatabase();
     if (!connection) {
-      res.status(500).json({message: "Error connecting to database"});
+      res.status(500).json({message: "Error connecting to database", status: 500});
+      logger(req, res, () => {});
       return;
     }
     
@@ -29,11 +31,11 @@ router.post('/login', async (req: Request, res: Response) => {
     );
     const obj_rows = Object.values(JSON.parse(JSON.stringify(rows[0])));
     if (obj_rows.length === 0) {
-      res.status(404).json({message: "User not found"});
+      res.status(404).json({message: "User not found", status: 404});
+      logger(req, res, () => {});
       return;
     } else if (obj_rows.length == 1) {
       const element = JSON.parse(JSON.stringify(obj_rows));
-      console.log(element[0].username);
 
       // Générer un jeton d'accès
       const accessToken = jwt.sign(user, JWT_SECRET, { expiresIn: '1h' });
@@ -45,17 +47,13 @@ router.post('/login', async (req: Request, res: Response) => {
         [accessToken, user.username]
       );
       connection.end();
-      if (update) {
-        console.log("Bearer updated");
-      }
-
-      // Token en cookie
-      res.cookie('token', accessToken, { httpOnly: true });
       const result = {
+        status: 200,
         message: 'Login successful',
         token: accessToken,
       }
       res.json(result);
+      logger(req, res, () => {});
     }
   });
 
@@ -67,7 +65,7 @@ router.post('/register', async (req: Request, res: Response) => {
   };
   const connection = await connectToDatabase();
   if (!connection) {
-    res.status(500).json({message: "Error connecting to database"});
+    res.status(500).json({message: "Error connecting to database", status: 500});
     return;
   }
 
@@ -80,7 +78,7 @@ router.post('/register', async (req: Request, res: Response) => {
   console.log(obj_rows[0]);
   console.log(obj_rows.length);
   if (obj_rows.length != 0) {
-    res.status(409).json({message: "Username already exists"});
+    res.status(409).json({message: "Username already exists", status: 409});
     return;
   } else
   {
@@ -90,7 +88,7 @@ router.post('/register', async (req: Request, res: Response) => {
     );
     connection.end();
     if (reg) {
-      res.status(201).json({message: "User created"});
+      res.status(201).json({message: "User created", status: 201});
       return;
     } 
   }
@@ -100,7 +98,7 @@ router.post('/logout', token.authenticateToken, async (req: Request, res: Respon
   // logout user with bearer
   const connection = await connectToDatabase();
   if (!connection) {
-    res.status(500).json({message: "Error connecting to database"});
+    res.status(500).json({message: "Error connecting to database", status: 500});
     return;
   }
   const rows = await connection.query(
@@ -109,7 +107,7 @@ router.post('/logout', token.authenticateToken, async (req: Request, res: Respon
   );
   const obj_rows = Object.values(JSON.parse(JSON.stringify(rows[0])));
   if (obj_rows.length === 0) {
-    res.status(404).json({message: "User not found"});
+    res.status(404).json({message: "User not found", status: 404});
     return;
   } else if (obj_rows.length == 1) {
     const element = JSON.parse(JSON.stringify(obj_rows));
@@ -123,9 +121,9 @@ router.post('/logout', token.authenticateToken, async (req: Request, res: Respon
     connection.end();
     if (update) {
       console.log("Bearer updated");
-      res.json({message: "Logout successful"});
+      res.json({message: "Logout successful", status: 200});
     } else  {
-      res.status(500).json({message: "Error on logout"});
+      res.status(500).json({message: "Error on logout", status: 500});
       return;
     }
   }
