@@ -15,6 +15,7 @@ router.post('/login', async (req: Request, res: Response) => {
     const user = {
       username: req.body.username,
       password: sha256(req.body.password),
+      id: null
     };
 
     // Vérifier si l'utilisateur existe dans la base de données et si le mot de passe est correct
@@ -36,7 +37,7 @@ router.post('/login', async (req: Request, res: Response) => {
       return;
     } else if (obj_rows.length == 1) {
       const element = JSON.parse(JSON.stringify(obj_rows));
-
+      user.id = element[0].id;
       // Générer un jeton d'accès
       const accessToken = jwt.sign(user, JWT_SECRET, { expiresIn: '1h' });
       //res.json({ accessToken });
