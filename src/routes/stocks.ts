@@ -13,12 +13,12 @@ const binance = new Binance().options({
 const router = Router();
 
 router.get("/", token.authenticateToken, async (req: Request, res: Response) => {
-  const user_id = req.user.id; 
+  const user_id = req.user.id;
 
   const connection = await connectToDatabase();
   if (!connection) {
-    res.status(500).json({message: "Error connecting to database", status: 500});
-    logger(req, res, () => {});
+    res.status(500).json({ message: "Error connecting to database", status: 500 });
+    logger(req, res, () => { });
     return;
   }
 
@@ -29,11 +29,11 @@ router.get("/", token.authenticateToken, async (req: Request, res: Response) => 
       [user_id]
     );
     res.json(stocks[0]);
-    logger(req, res, () => {});
+    logger(req, res, () => { });
   } catch (error) {
     console.error("Error querying the database:", error);
-    res.status(500).json({message: "Error querying the database", status: 500});
-    logger(req, res, () => {});
+    res.status(500).json({ message: "Error querying the database", status: 500 });
+    logger(req, res, () => { });
   } finally {
     connection.end();
   }
@@ -41,12 +41,12 @@ router.get("/", token.authenticateToken, async (req: Request, res: Response) => 
 
 router.get("/:symbol", token.authenticateToken, async (req: Request, res: Response) => {
   const symbol = req.params.symbol;
-  const user_id = req.user.id; 
+  const user_id = req.user.id;
 
   const connection = await connectToDatabase();
   if (!connection) {
-    res.status(500).json({message: "Error connecting to database", status: 500});
-    logger(req, res, () => {});
+    res.status(500).json({ message: "Error connecting to database", status: 500 });
+    logger(req, res, () => { });
     return;
   }
 
@@ -58,14 +58,14 @@ router.get("/:symbol", token.authenticateToken, async (req: Request, res: Respon
     connection.end();
     const obj_rows = Object.values(JSON.parse(JSON.stringify(rows[0])));
     if (obj_rows.length === 0) {
-      res.status(404).json({message: "Stock not found", status: 404});
-      logger(req, res, () => {});
+      res.status(404).json({ message: "Stock not found", status: 404 });
+      logger(req, res, () => { });
       return;
     } else if (obj_rows.length == 1) {
       const element = JSON.parse(JSON.stringify(obj_rows[0]));
       let headers = {
-        "Content-Type":"multipart/form-data",
-        Accept:"application/json",
+        "Content-Type": "multipart/form-data",
+        Accept: "application/json",
       };
       // Axios post request on https://api.flaticon.com/v3/app/authentication
       const data = await axios.post(
@@ -87,20 +87,22 @@ router.get("/:symbol", token.authenticateToken, async (req: Request, res: Respon
       )
       const icon_url = icon.data.data[0].images['512'];
       binance.prices(symbol + "USDT", (error: any, ticker: any) => {
+        console.log("Price of " + symbol + "USDT: ", ticker?.[symbol + "USDT"]);
         const result = {
           info: element[0],
           icon: icon_url,
-          ticker,
+          symbol: symbol,
+          price: ticker?.[symbol + "USDT"],
         };
         res.json(result);
-        logger(req, res, () => {});
+        logger(req, res, () => { });
         return;
       });
     }
   } catch (error) {
     connection.end();
-    res.status(500).json({message: "Error querying the database", status: 500});
-    logger(req, res, () => {});
+    res.status(500).json({ message: "Error querying the database", status: 500 });
+    logger(req, res, () => { });
     return;
   }
 });
@@ -108,12 +110,12 @@ router.get("/:symbol", token.authenticateToken, async (req: Request, res: Respon
 // POST method for adding a stock
 router.post("/:symbol", token.authenticateToken, async (req: Request, res: Response) => {
   const symbol = req.params.symbol;
-  const user_id = req.user.id; 
+  const user_id = req.user.id;
 
   const connection = await connectToDatabase();
   if (!connection) {
-    res.status(500).json({message: "Error connecting to database", status: 500});
-    logger(req, res, () => {});
+    res.status(500).json({ message: "Error connecting to database", status: 500 });
+    logger(req, res, () => { });
     return;
   }
 
@@ -126,13 +128,13 @@ router.post("/:symbol", token.authenticateToken, async (req: Request, res: Respo
     const obj_rows = Object.values(JSON.parse(JSON.stringify(rows[0])));
     console.log(obj_rows);
     if (obj_rows.length != 0) {
-      res.status(409).json({message: "Stock already exists", status: 409});
-      logger(req, res, () => {});
+      res.status(409).json({ message: "Stock already exists", status: 409 });
+      logger(req, res, () => { });
       return;
     }
   } catch (error) {
-    res.status(500).json({message: "Error querying the database", status: 500});
-    logger(req, res, () => {});
+    res.status(500).json({ message: "Error querying the database", status: 500 });
+    logger(req, res, () => { });
     return;
   }
 
@@ -142,12 +144,12 @@ router.post("/:symbol", token.authenticateToken, async (req: Request, res: Respo
       "INSERT INTO stocks (id, symbol) VALUES (?, ?)",
       [user_id, symbol]
     );
-    res.status(201).json({message: "Stock added", status: 201});
-    logger(req, res, () => {});
+    res.status(201).json({ message: "Stock added", status: 201 });
+    logger(req, res, () => { });
     return;
   } catch (error) {
-    res.status(500).json({message: "Error inserting into the database", status: 500});
-    logger(req, res, () => {});
+    res.status(500).json({ message: "Error inserting into the database", status: 500 });
+    logger(req, res, () => { });
     return;
   } finally {
     connection.end();
@@ -158,12 +160,12 @@ router.post("/:symbol", token.authenticateToken, async (req: Request, res: Respo
 // DELETE method for removing a stock
 router.delete("/:symbol", token.authenticateToken, async (req: Request, res: Response) => {
   const symbol = req.params.symbol;
-  const user_id = req.user.id; 
+  const user_id = req.user.id;
 
   const connection = await connectToDatabase();
   if (!connection) {
-    res.status(500).json({message: "Error connecting to database", status: 500});
-    logger(req, res, () => {});
+    res.status(500).json({ message: "Error connecting to database", status: 500 });
+    logger(req, res, () => { });
     return;
   }
 
@@ -176,14 +178,14 @@ router.delete("/:symbol", token.authenticateToken, async (req: Request, res: Res
     const obj_rows = Object.values(JSON.parse(JSON.stringify(rows[0])));
     console.log(obj_rows);
     if (obj_rows.length === 0) {
-      res.status(404).json({message: "Stock does not exist for this user", status: 404});
-      logger(req, res, () => {});
+      res.status(404).json({ message: "Stock does not exist for this user", status: 404 });
+      logger(req, res, () => { });
       console.log("Stock does not exist for this user");
       return;
     }
   } catch (error) {
-    res.status(500).json({message: "Error querying the database", status: 500});
-    logger(req, res, () => {});
+    res.status(500).json({ message: "Error querying the database", status: 500 });
+    logger(req, res, () => { });
     return;
   }
 
@@ -194,12 +196,12 @@ router.delete("/:symbol", token.authenticateToken, async (req: Request, res: Res
       [user_id, symbol]
     );
     connection.end();
-    res.status(200).json({message: "Stock deleted", status: 200});
-    logger(req, res, () => {});
+    res.status(200).json({ message: "Stock deleted", status: 200 });
+    logger(req, res, () => { });
     return;
   } catch (error) {
-    res.status(500).json({message: "Error deleting from the database", status: 500});
-    logger(req, res, () => {});
+    res.status(500).json({ message: "Error deleting from the database", status: 500 });
+    logger(req, res, () => { });
     return;
   }
 });
