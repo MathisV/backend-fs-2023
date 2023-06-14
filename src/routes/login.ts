@@ -78,6 +78,7 @@ router.post('/register', async (req: Request, res: Response) => {
   );
   const obj_rows = Object.values(JSON.parse(JSON.stringify(rows[0])));
   if (obj_rows.length != 0) {
+    connection.end();
     res.status(409).json({ message: "Username already exists", status: 409 });
     return;
   } else {
@@ -107,6 +108,7 @@ router.post('/logout', token.authenticateToken, async (req: Request, res: Respon
   );
   const obj_rows = Object.values(JSON.parse(JSON.stringify(rows[0])));
   if (obj_rows.length === 0) {
+    connection.end();
     res.status(404).json({ message: "User not found", status: 404 });
     logger(req, res, () => { });
     return;

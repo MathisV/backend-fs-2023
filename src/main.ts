@@ -25,9 +25,16 @@ declare global {
   }
 }
 
+var corsOptions = {
+  "origin": "*",
+  "methods": "GET,HEAD,PUT,PATCH,POST,DELETE",
+  "preflightContinue": false,
+  "headers": "Content-Type, Authorization"
+}
+
 // Middleware pour analyser le contenu JSON des requêtes entrantes
 app.use(express.json());
-app.use(cors());
+app.use(cors(corsOptions));
 
 app.use('/api', routes);
 

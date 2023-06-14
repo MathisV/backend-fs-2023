@@ -28,14 +28,13 @@ router.get("/", token.authenticateToken, async (req: Request, res: Response) => 
       "SELECT symbol FROM stocks WHERE id = ?",
       [user_id]
     );
+    connection.end();
     res.json(stocks[0]);
     logger(req, res, () => { });
   } catch (error) {
     console.error("Error querying the database:", error);
     res.status(500).json({ message: "Error querying the database", status: 500 });
     logger(req, res, () => { });
-  } finally {
-    connection.end();
   }
 });
 
@@ -87,7 +86,6 @@ router.get("/:symbol", token.authenticateToken, async (req: Request, res: Respon
       )
       const icon_url = icon.data.data[0].images['512'];
       binance.prices(symbol + "USDT", (error: any, ticker: any) => {
-        console.log("Price of " + symbol + "USDT: ", ticker?.[symbol + "USDT"]);
         const result = {
           info: element[0],
           icon: icon_url,
@@ -100,7 +98,6 @@ router.get("/:symbol", token.authenticateToken, async (req: Request, res: Respon
       });
     }
   } catch (error) {
-    connection.end();
     res.status(500).json({ message: "Error querying the database", status: 500 });
     logger(req, res, () => { });
     return;
@@ -143,6 +140,7 @@ router.post("/:symbol", token.authenticateToken, async (req: Request, res: Respo
       "INSERT INTO stocks (id, symbol) VALUES (?, ?)",
       [user_id, symbol]
     );
+    connection.end();
     res.status(201).json({ message: "Stock added", status: 201 });
     logger(req, res, () => { });
     return;
@@ -150,9 +148,9 @@ router.post("/:symbol", token.authenticateToken, async (req: Request, res: Respo
     res.status(500).json({ message: "Error inserting into the database", status: 500 });
     logger(req, res, () => { });
     return;
-  } finally {
-    connection.end();
   }
+
+  logger(req, res, () => { });
 });
 
 
@@ -175,7 +173,6 @@ router.delete("/:symbol", token.authenticateToken, async (req: Request, res: Res
       [user_id, symbol]
     );
     const obj_rows = Object.values(JSON.parse(JSON.stringify(rows[0])));
-    console.log(obj_rows);
     if (obj_rows.length === 0) {
       res.status(404).json({ message: "Stock does not exist for this user", status: 404 });
       logger(req, res, () => { });
