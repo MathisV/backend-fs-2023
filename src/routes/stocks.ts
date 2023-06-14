@@ -126,7 +126,6 @@ router.post("/:symbol", token.authenticateToken, async (req: Request, res: Respo
       [user_id, symbol]
     );
     const obj_rows = Object.values(JSON.parse(JSON.stringify(rows[0])));
-    console.log(obj_rows);
     if (obj_rows.length != 0) {
       res.status(409).json({ message: "Stock already exists", status: 409 });
       logger(req, res, () => { });
