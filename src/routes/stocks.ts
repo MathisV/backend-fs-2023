@@ -25,7 +25,7 @@ router.get("/", token.authenticateToken, async (req: Request, res: Response) => 
   // Get all stocks for this user
   try {
     const stocks = await connection.query(
-      "SELECT symbol FROM stocks WHERE id = ?",
+      "SELECT symbol FROM stocks WHERE id = ? ORDER BY orderIndex DESC",
       [user_id]
     );
     connection.end();
@@ -98,7 +98,7 @@ router.get("/:symbol", token.authenticateToken, async (req: Request, res: Respon
       });
     }
   } catch (error) {
-    res.status(500).json({ message: "Error querying the database", status: 500 });
+    res.status(500).json({ message: "Error querying the database", status: 500, error: error });
     logger(req, res, () => { });
     return;
   }
@@ -134,11 +134,26 @@ router.post("/:symbol", token.authenticateToken, async (req: Request, res: Respo
     return;
   }
 
+  // Get the current count of stocks for this user
+  let stockCount;
+  try {
+    const countRows = await connection.query(
+      "SELECT COUNT(*) AS count FROM stocks WHERE id = ?",
+      [user_id]
+    );
+    stockCount = Object.values(JSON.parse(JSON.stringify(countRows[0])));
+    stockCount = JSON.parse(JSON.stringify(stockCount[0])).count;
+  } catch (error) {
+    res.status(500).json({ message: "Error querying the database for count", status: 500 });
+    logger(req, res, () => { });
+    return;
+  }
+  console.log("Count: ", stockCount);
   // Insert the new stock into the database
   try {
     await connection.query(
-      "INSERT INTO stocks (id, symbol) VALUES (?, ?)",
-      [user_id, symbol]
+      "INSERT INTO stocks (id, symbol, orderIndex) VALUES (?, ?, ?)",
+      [user_id, symbol, stockCount]
     );
     connection.end();
     res.status(201).json({ message: "Stock added", status: 201 });
@@ -152,7 +167,6 @@ router.post("/:symbol", token.authenticateToken, async (req: Request, res: Respo
 
   logger(req, res, () => { });
 });
-
 
 // DELETE method for removing a stock
 router.delete("/:symbol", token.authenticateToken, async (req: Request, res: Response) => {
@@ -201,6 +215,108 @@ router.delete("/:symbol", token.authenticateToken, async (req: Request, res: Res
     return;
   }
 });
+
+router.post("/:symbol/up", token.authenticateToken, async (req: Request, res: Response) => {
+  const symbol = req.params.symbol;
+  const user_id = req.user.id;
+
+  const connection = await connectToDatabase();
+  if (!connection) {
+    res.status(500).json({ message: "Error connecting to database", status: 500 });
+    logger(req, res, () => { });
+    return;
+  }
+
+  try {
+    // Retrieve the current orderIndex for the stock and the max orderIndex
+    const rows = await connection.query("SELECT orderIndex, (SELECT MAX(orderIndex) as maxOrderIndex FROM stocks WHERE id = ?) as maxOrderIndex FROM stocks WHERE id = ? AND symbol = ?", [user_id, user_id, symbol]);
+    const obj_rows = Object.values(JSON.parse(JSON.stringify(rows[0])));
+    console.log("obj_rows", obj_rows);
+    if (obj_rows.length === 0) {
+      res.status(404).json({ message: "Stock not found", status: 404 });
+      logger(req, res, () => { });
+      return;
+    }
+    let element = JSON.parse(JSON.stringify(obj_rows[0]));
+    let currentOrderIndex = element.orderIndex;
+    let maxOrderIndex = element.maxOrderIndex;
+    console.log("pos", currentOrderIndex, maxOrderIndex);
+
+    if (currentOrderIndex < maxOrderIndex) { // Ensure we're not already at the top
+      // Swap the orderIndex with the one above
+      await connection.query(
+        "UPDATE stocks SET orderIndex = ? WHERE id = ? AND orderIndex = ?",
+        [currentOrderIndex, user_id, currentOrderIndex + 1]
+      );
+      await connection.query(
+        "UPDATE stocks SET orderIndex = ? WHERE id = ? AND symbol = ?",
+        [currentOrderIndex + 1, user_id, symbol]
+      );
+      console.log("pos", currentOrderIndex, maxOrderIndex);
+      res.status(200).json({ message: "Order updated", status: 200, currentOrderIndex: currentOrderIndex, maxOrderIndex: maxOrderIndex });
+      logger(req, res, () => { });
+    } else {
+      res.status(409).json({ message: "Already at top", status: 409, currentOrderIndex: currentOrderIndex, maxOrderIndex: maxOrderIndex });
+      logger(req, res, () => { });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Error updating the database", status: 500 });
+    logger(req, res, () => { });
+  } finally {
+    connection.end();
+  }
+});
+
+router.post("/:symbol/down", token.authenticateToken, async (req: Request, res: Response) => {
+  const symbol = req.params.symbol;
+  const user_id = req.user.id;
+
+  const connection = await connectToDatabase();
+  if (!connection) {
+    res.status(500).json({ message: "Error connecting to database", status: 500 });
+    logger(req, res, () => { });
+    return;
+  }
+
+  try {
+    // Retrieve the current orderIndex for the stock
+    const rows = await connection.query(
+      "SELECT orderIndex FROM stocks WHERE id = ? AND symbol = ?",
+      [user_id, symbol]
+    );
+    const obj_rows = Object.values(JSON.parse(JSON.stringify(rows[0])));
+    if (obj_rows.length === 0) {
+      res.status(404).json({ message: "Stock not found", status: 404 });
+      logger(req, res, () => { });
+      return;
+    }
+    let currentOrderIndex = JSON.parse(JSON.stringify(obj_rows[0])).orderIndex;
+
+    if (currentOrderIndex > 0) { // Ensure we're not already at the bottom
+      // Swap the orderIndex with the one below
+      await connection.query(
+        "UPDATE stocks SET orderIndex = ? WHERE id = ? AND orderIndex = ?",
+        [currentOrderIndex, user_id, currentOrderIndex - 1]
+      );
+      await connection.query(
+        "UPDATE stocks SET orderIndex = ? WHERE id = ? AND symbol = ?",
+        [currentOrderIndex - 1, user_id, symbol]
+      );
+      res.status(200).json({ message: "Order updated", status: 200, currentOrderIndex: currentOrderIndex });
+      logger(req, res, () => { });
+    } else {
+      res.status(409).json({ message: "Already at bottom", status: 409, currentOrderIndex: currentOrderIndex });
+      logger(req, res, () => { });
+    }
+
+  } catch (error) {
+    res.status(500).json({ message: "Error updating the database", status: 500 });
+    logger(req, res, () => { });
+  } finally {
+    connection.end();
+  }
+});
+
 
 
 export default router;
