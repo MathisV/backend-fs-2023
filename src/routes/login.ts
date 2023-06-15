@@ -11,7 +11,7 @@ const router = Router();
 
 router.post('/login', async (req: Request, res: Response) => {
   // Vérifiez les identifiants de l'utilisateur ici (par exemple, recherchez l'utilisateur dans la base de données et vérifiez le mot de passe)
-  // Pour l'instant, nous supposerons que les informations d'identification sont valides
+  
 
   const user = {
     username: req.body.username,
